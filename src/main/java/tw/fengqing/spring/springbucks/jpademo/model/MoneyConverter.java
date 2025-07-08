@@ -8,8 +8,6 @@ import org.joda.money.Money;
 /**
  * JPA 屬性轉換器
  * 用於在資料庫和 Java 物件之間轉換 Money 類型
- * 
- * @author tw.fengqing.spring.springbucks.jpademo
  */
 @Converter(autoApply = true)
 public class MoneyConverter implements AttributeConverter<Money, Long> {
