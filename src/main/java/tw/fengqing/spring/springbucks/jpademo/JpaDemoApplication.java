@@ -13,15 +13,14 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-/**
- * @author Feingqing
- */
 @SpringBootApplication 
-@EnableJpaRepositories 
+@EnableJpaRepositories
+@EnableTransactionManagement
 @Slf4j 
 public class JpaDemoApplication implements ApplicationRunner {
 	
@@ -40,17 +39,7 @@ public class JpaDemoApplication implements ApplicationRunner {
 		initOrders();
 	}
 
-	/**
-	 * 初始化訂單資料
-	 * 創建咖啡和訂單記錄，並保存到資料庫
-	 * 包含以下操作：
-	 * 1. 創建並保存 espresso 咖啡
-	 * 2. 創建並保存 latte 咖啡
-	 * 3. 創建並保存包含單一咖啡的訂單
-	 * 4. 創建並保存包含多個咖啡的訂單
-	 */
 	private void initOrders() {
-		// 創建並保存 espresso 咖啡
 		Coffee espresso = Coffee.builder()
 				.name("espresso")
 				.price(Money.of(CurrencyUnit.of("TWD"), 100.0))
@@ -58,7 +47,6 @@ public class JpaDemoApplication implements ApplicationRunner {
 		coffeeRepository.save(espresso);
 		log.info("Coffee: {}", espresso);
 
-		// 創建並保存 latte 咖啡
 		Coffee latte = Coffee.builder()
 				.name("latte")
 				.price(Money.of(CurrencyUnit.of("TWD"), 150.0))
@@ -66,18 +54,16 @@ public class JpaDemoApplication implements ApplicationRunner {
 		coffeeRepository.save(latte);
 		log.info("Coffee: {}", latte);
 
-		// 創建並保存第一個訂單（只包含 espresso）
 		CoffeeOrder order = CoffeeOrder.builder()
-				.customer("Li Lei")
+				.customer("Ray Chu")
 				.items(Collections.singletonList(espresso))
 				.state(0)
 				.build();
 		orderRepository.save(order);
 		log.info("Order: {}", order);
 
-		// 創建並保存第二個訂單（包含 espresso 和 latte）
 		order = CoffeeOrder.builder()
-				.customer("Li Lei")
+				.customer("Ray Chu")
 				.items(Arrays.asList(espresso, latte))
 				.state(0)
 				.build();
@@ -85,4 +71,3 @@ public class JpaDemoApplication implements ApplicationRunner {
 		log.info("Order: {}", order);
 	}
 }
-

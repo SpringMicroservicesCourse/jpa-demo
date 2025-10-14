@@ -1,242 +1,438 @@
-# Spring Boot JPA 示範專案
+# jpa-demo
 
-## 專案說明
-這是一個使用 Spring Boot 和 JPA 實作的咖啡訂單管理系統示範專案。本專案展示了如何使用 Spring Data JPA 進行物件關聯對應（ORM）的實作。
+> SpringBucks coffee shop demo with JPA entity relationships and Joda Money integration
 
-## 技術架構
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
+[![JPA](https://img.shields.io/badge/Spring%20Data%20JPA-3.4.5-blue.svg)](https://spring.io/projects/spring-data-jpa)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A comprehensive demonstration of Spring Data JPA featuring entity relationship mapping, custom attribute converters, and professional money handling for a coffee shop management system.
+
+## Features
+
+- JPA entity design and relationship mapping
+- Many-to-many relationship (Order ↔ Coffee)
+- Custom attribute converter (MoneyConverter)
+- Professional money handling with Joda Money
+- Automatic timestamp management
+- H2 in-memory database with console
+- Repository pattern with Spring Data JPA
+- Builder pattern with Lombok
+- Test data initialization
+
+## Tech Stack
+
 - Spring Boot 3.4.5
 - Spring Data JPA
 - Java 21
-- H2 資料庫
+- H2 Database (in-memory)
+- Joda Money 2.0.2
 - Lombok
-- Joda Money
+- Maven 3.8+
 
-## 專案結構
+## Getting Started
+
+### Prerequisites
+
+- JDK 21 or higher
+- Maven 3.8+ (or use included Maven Wrapper)
+
+### Installation & Run
+
+```bash
+# Clone the repository
+git clone https://github.com/SpringMicroservicesCourse/jpa-demo
+cd jpa-demo
+
+# Run the application
+./mvnw spring-boot:run
 ```
-src/main/java/tw/fengqing/spring/springbucks/jpademo/
-├── JpaDemoApplication.java        # 應用程式主類別
-├── model/                         # 資料模型
-│   ├── Coffee.java               # 咖啡實體類別
-│   ├── CoffeeOrder.java          # 訂單實體類別
-│   └── MoneyConverter.java       # 金額轉換器
-└── repository/                    # 資料存取層
-    ├── CoffeeRepository.java     # 咖啡資料存取介面
-    └── CoffeeOrderRepository.java # 訂單資料存取介面
+
+### Alternative: Run as JAR
+
+```bash
+# Build
+./mvnw clean package
+
+# Run
+java -jar target/jpa-demo-0.0.1-SNAPSHOT.jar
 ```
 
-## 核心程式碼說明
+## Configuration
 
-### 1. 咖啡實體類別 (Coffee.java)
+### Application Properties
+
+```properties
+# JPA/Hibernate configuration
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.properties.hibernate.show_sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# H2 Database configuration
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+# H2 Console
+spring.h2.console.enabled=true
+```
+
+### Configuration Highlights
+
+| Property | Value | Description |
+|----------|-------|-------------|
+| `ddl-auto` | create-drop | Recreate tables on each startup |
+| `show_sql` | true | Display executed SQL statements |
+| `format_sql` | true | Format SQL output for readability |
+| `h2.console.enabled` | true | Enable H2 web console |
+
+### H2 Console Access
+
+Access the H2 database console at: `http://localhost:8080/h2-console`
+
+**Connection Settings:**
+- JDBC URL: `jdbc:h2:mem:testdb`
+- Username: `sa`
+- Password: (leave empty)
+
+## Database Schema
+
+### Tables Created by JPA
+
+**T_MENU** (Coffee table)
+- `ID` - Primary key (auto-generated)
+- `NAME` - Coffee name
+- `PRICE` - Price in minor units (cents)
+- `CREATE_TIME` - Creation timestamp
+- `UPDATE_TIME` - Last update timestamp
+
+**T_ORDER** (Order table)
+- `ID` - Primary key (auto-generated)
+- `STATE` - Order state (NOT NULL)
+- `CUSTOMER` - Customer name
+- `CREATE_TIME` - Creation timestamp
+- `UPDATE_TIME` - Last update timestamp
+
+**T_ORDER_COFFEE** (Join table for many-to-many)
+- `ORDER_ID` - Foreign key to T_ORDER
+- `ITEMS_ID` - Foreign key to T_MENU
+
+## Usage
+
+### Application Execution Flow
+
+```
+1. Application starts
+   ↓
+2. JPA auto-creates tables (T_MENU, T_ORDER, T_ORDER_COFFEE)
+   ↓
+3. Initializes test data:
+   - Coffee: espresso (TWD 100.00)
+   - Coffee: latte (TWD 150.00)
+   - Order 1: Ray Chu orders 1x espresso
+   - Order 2: Ray Chu orders 1x espresso + 1x latte
+   ↓
+4. Logs output to console
+   ↓
+5. H2 console available for database inspection
+```
+
+### Sample Log Output
+
+```
+Coffee: Coffee(id=1, name=espresso, price=TWD 100.00, createTime=..., updateTime=...)
+Coffee: Coffee(id=2, name=latte, price=TWD 150.00, createTime=..., updateTime=...)
+Order: CoffeeOrder(id=1, items=[Coffee(id=1, name=espresso, ...)], state=0, customer=Ray Chu, ...)
+Order: CoffeeOrder(id=2, items=[Coffee(id=1, ...), Coffee(id=2, ...)], state=0, customer=Ray Chu, ...)
+```
+
+### Query Examples via H2 Console
+
+```sql
+-- View all coffee items
+SELECT * FROM T_MENU;
+
+-- View all orders
+SELECT * FROM T_ORDER;
+
+-- View order details with coffee items
+SELECT o.id, o.customer, c.name, c.price 
+FROM T_ORDER o 
+JOIN T_ORDER_COFFEE oc ON o.id = oc.order_id 
+JOIN T_MENU c ON oc.items_id = c.id;
+```
+
+## Key Components
+
+### 1. Coffee Entity
+
+**File:** `Coffee.java`
+
 ```java
 @Entity
-@Table(name = "t_menu")
-@Data
+@Table(name = "T_MENU")
 @Builder
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Coffee {
+public class Coffee implements Serializable {
     @Id
     @GeneratedValue
     private Long id;
-
+    
     private String name;
-
+    
+    @Column
     @Convert(converter = MoneyConverter.class)
-    @Column(nullable = false)
     private Money price;
-
+    
     @Column(updatable = false)
     @CreationTimestamp
     private LocalDateTime createTime;
-
+    
     @UpdateTimestamp
     private LocalDateTime updateTime;
 }
 ```
-**程式碼說明**：
-- `@Entity`：標記為 JPA 實體類別
-- `@Table`：指定對應的資料表名稱為 t_menu
-- `@Data`：Lombok 註解，自動生成 getter/setter 等方法
-- `@Builder`：Lombok 註解，提供建構器模式
-- `@Convert`：使用自定義的 MoneyConverter 處理金額轉換
-- `@CreationTimestamp`：自動記錄建立時間
-- `@UpdateTimestamp`：自動更新修改時間
 
-### 2. 訂單實體類別 (CoffeeOrder.java)
+**Key Features:**
+- `@Entity` - Marks as JPA entity
+- `@Convert` - Uses MoneyConverter for price field
+- `@CreationTimestamp` - Auto-records creation time (immutable)
+- `@UpdateTimestamp` - Auto-updates modification time
+
+### 2. CoffeeOrder Entity
+
+**File:** `CoffeeOrder.java`
+
 ```java
 @Entity
-@Table(name = "t_order")
+@Table(name = "T_ORDER")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CoffeeOrder {
+@Builder
+public class CoffeeOrder implements Serializable {
     @Id
     @GeneratedValue
     private Long id;
-
+    
     @ManyToMany
-    @JoinTable(name = "t_order_coffee")
+    @JoinTable(name = "T_ORDER_COFFEE")
     private List<Coffee> items;
-
-    @Enumerated
+    
     @Column(nullable = false)
-    private OrderState state;
-
+    private Integer state;
+    
     private String customer;
-
+    
     @Column(updatable = false)
     @CreationTimestamp
     private LocalDateTime createTime;
-
+    
     @UpdateTimestamp
     private LocalDateTime updateTime;
 }
 ```
-**程式碼說明**：
-- `@ManyToMany`：建立與咖啡的多對多關聯
-- `@JoinTable`：指定關聯表名稱為 t_order_coffee
-- `@Enumerated`：將訂單狀態以列舉型別儲存
-- `@Column(nullable = false)`：設定欄位不可為空
 
-### 3. 金額轉換器 (MoneyConverter.java)
+**Key Features:**
+- `@ManyToMany` - Many-to-many relationship with Coffee
+- `@JoinTable` - Specifies join table name
+- `@Column(nullable = false)` - State cannot be null
+
+### 3. MoneyConverter (Custom AttributeConverter)
+
+**File:** `MoneyConverter.java`
+
 ```java
 @Converter(autoApply = true)
 public class MoneyConverter implements AttributeConverter<Money, Long> {
+    
     @Override
     public Long convertToDatabaseColumn(Money attribute) {
+        // Convert Money to minor units (cents)
         return attribute == null ? null : attribute.getAmountMinorLong();
     }
 
     @Override
     public Money convertToEntityAttribute(Long dbData) {
+        // Convert minor units (cents) to Money
         return dbData == null ? null : Money.ofMinor(CurrencyUnit.of("TWD"), dbData);
     }
 }
 ```
-**程式碼說明**：
-- `@Converter`：標記為 JPA 屬性轉換器
-- `autoApply = true`：自動應用於所有 Money 型別欄位
-- `convertToDatabaseColumn`：將 Money 物件轉換為資料庫中的長整數值
-- `convertToEntityAttribute`：將資料庫中的長整數值轉換為 Money 物件
 
-### 4. 應用程式主類別 (JpaDemoApplication.java)
+**Why This Matters:**
+- ✅ **Precision**: Stores money as cents (Long) to avoid floating-point errors
+- ✅ **Auto-apply**: Automatically applied to all Money fields
+- ✅ **Currency**: Hardcoded to TWD (Taiwan Dollar) - can be made configurable
+
+### 4. Repositories
+
+**CoffeeRepository.java:**
 ```java
-@SpringBootApplication
-@EnableJpaRepositories
-@Slf4j
-public class JpaDemoApplication implements ApplicationRunner {
-    @Autowired
-    private CoffeeRepository coffeeRepository;
-
-    @Autowired
-    private CoffeeOrderRepository orderRepository;
-
-    @Override
-    public void run(ApplicationArguments args) throws Exception {
-        initOrders();
-    }
-
-    private void initOrders() {
-        // 建立並儲存 espresso 咖啡
-        Coffee espresso = Coffee.builder()
-                .name("espresso")
-                .price(Money.of(CurrencyUnit.of("TWD"), 100.0))
-                .build();
-        coffeeRepository.save(espresso);
-        log.info("Coffee: {}", espresso);
-
-        // 建立並儲存 latte 咖啡
-        Coffee latte = Coffee.builder()
-                .name("latte")
-                .price(Money.of(CurrencyUnit.of("TWD"), 150.0))
-                .build();
-        coffeeRepository.save(latte);
-        log.info("Coffee: {}", latte);
-
-        // 建立並儲存訂單
-        CoffeeOrder order = CoffeeOrder.builder()
-                .customer("Li Lei")
-                .items(Arrays.asList(espresso, latte))
-                .state(0)
-                .build();
-        orderRepository.save(order);
-        log.info("Order: {}", order);
-    }
+public interface CoffeeRepository extends CrudRepository<Coffee, Long> {
 }
 ```
-**程式碼說明**：
-- `@SpringBootApplication`：標記為 Spring Boot 應用程式
-- `@EnableJpaRepositories`：啟用 JPA 倉儲功能
-- `@Slf4j`：啟用 Lombok 日誌功能
-- `ApplicationRunner`：實作此介面以在應用程式啟動時執行初始化操作
-- `initOrders`：初始化測試資料，包含咖啡和訂單
 
-## 建置與執行
-
-### 前置需求
-- JDK 21 或以上版本
-- Maven 3.6 或以上版本
-
-### 建置步驟
-1. 複製專案
-```bash
-git clone https://github.com/SpringMicroservicesCourse/jpa-demo
+**CoffeeOrderRepository.java:**
+```java
+public interface CoffeeOrderRepository extends CrudRepository<CoffeeOrder, Long> {
+}
 ```
 
-2. 進入專案目錄
-```bash
-cd jpa-demo
+**Benefits:**
+- No implementation code needed
+- Automatic CRUD methods
+- Type-safe operations
+
+## Why Joda Money?
+
+### The Floating-Point Problem
+
+```java
+// ❌ WRONG: Using double for money
+double price = 0.1 + 0.2;
+System.out.println(price);  // Output: 0.30000000000000004
+
+// ✅ CORRECT: Using Joda Money
+Money price = Money.of(CurrencyUnit.of("TWD"), 0.1)
+                  .plus(Money.of(CurrencyUnit.of("TWD"), 0.2));
+System.out.println(price);  // Output: TWD 0.30
 ```
 
-3. 使用 Maven 建置專案
-```bash
-mvn clean package
+### Binary Representation Limitation
+
+- Floating-point numbers are stored in binary format
+- Some decimal values cannot be precisely represented in binary (e.g., 0.1)
+- This causes rounding and truncation errors
+
+### Joda Money Solution
+
+```java
+// Create Money object
+Money price = Money.of(CurrencyUnit.of("TWD"), 100.0);
+
+// Store in database as minor units (cents)
+Long amountInCents = price.getAmountMinorLong();  // 10000 cents
+
+// Retrieve from database
+Money retrieved = Money.ofMinor(CurrencyUnit.of("TWD"), 10000);  // TWD 100.00
 ```
 
-4. 執行應用程式
-```bash
-mvn spring-boot:run
+## Entity Relationship Diagram
+
+```
+┌─────────────┐         ┌──────────────────┐         ┌──────────────┐
+│   Coffee    │         │ T_ORDER_COFFEE   │         │ CoffeeOrder  │
+│  (T_MENU)   │────────<│  (Join Table)    │>────────│  (T_ORDER)   │
+└─────────────┘         └──────────────────┘         └──────────────┘
+│ ID          │         │ ORDER_ID (FK)    │         │ ID           │
+│ NAME        │         │ ITEMS_ID (FK)    │         │ CUSTOMER     │
+│ PRICE       │         └──────────────────┘         │ STATE        │
+│ CREATE_TIME │                                      │ CREATE_TIME  │
+│ UPDATE_TIME │                                      │ UPDATE_TIME  │
+└─────────────┘                                      └──────────────┘
 ```
 
-## 資料庫設定
-- 使用 H2 記憶體資料庫
-- 資料庫連線資訊：
-  - URL: `jdbc:h2:mem:testdb`
-  - 使用者名稱: `sa`
-  - 密碼: 無
+## Best Practices Demonstrated
 
-## 測試資料
-應用程式啟動時會自動建立以下測試資料：
-- 咖啡品項：
-  - Espresso（NT$20）
-  - Latte（NT$30）
-- 訂單：
-  - 單一咖啡訂單
-  - 多品項咖啡訂單
+1. **Money Handling**: Use Joda Money instead of double/float
+2. **Entity Design**: Separate concerns with proper entity modeling
+3. **Relationship Mapping**: Correct use of `@ManyToMany` and `@JoinTable`
+4. **Timestamp Management**: Automatic creation/update timestamps
+5. **Builder Pattern**: Fluent object creation with Lombok
+6. **Repository Pattern**: Spring Data JPA for clean data access
+7. **Custom Converters**: Type-safe conversion between Java and database types
 
-## 注意事項
-1. 本專案使用 H2 記憶體資料庫，重啟應用程式後資料會重置
-2. 所有金額計算使用 Joda Money 函式庫，確保精確性
-3. 時間戳記使用 `LocalDateTime` 型別，符合 Java 8 時間 API 規範
+## Development vs Production
 
-## 作者
-- 作者：Fengqing
-- 專案網址：[SpringMicroservicesCourse/jpa-demo · GitHub](https://github.com/SpringMicroservicesCourse/jpa-demo)
+### Development (Current Configuration)
 
-## 授權條款
-本專案採用 MIT 授權條款，詳見 [LICENSE](LICENSE) 檔案。
+```properties
+# Auto-create tables, show SQL
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.properties.hibernate.show_sql=true
+spring.jpa.properties.hibernate.format_sql=true
+```
 
-## 關於我們
+### Production (Recommended)
+
+```properties
+# Validate only, hide SQL
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.properties.hibernate.show_sql=false
+spring.jpa.properties.hibernate.format_sql=false
+
+# Use production database (not H2)
+spring.datasource.url=jdbc:mysql://localhost:3306/springbucks
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+```
+
+## Testing
+
+```bash
+./mvnw test
+```
+
+## Important Notes
+
+⚠️ **Critical Points:**
+
+1. **H2 In-Memory Database** - Data resets on every application restart
+2. **Money Precision** - Always use Joda Money for financial calculations
+3. **Timestamp Annotations** - `@CreationTimestamp` makes field immutable
+4. **Many-to-Many** - Creates separate join table automatically
+5. **DDL Auto** - Use `validate` in production (never `create-drop`)
+
+⚠️ **Common Pitfalls:**
+
+- ❌ Using `double` or `float` for money
+- ❌ Forgetting `@NoArgsConstructor` for JPA entities
+- ❌ Using `create-drop` in production
+- ❌ Missing `@EnableJpaRepositories` annotation
+- ❌ Not implementing `Serializable` for entities
+
+## Extended Practice
+
+**Suggested Enhancements:**
+
+1. Add more coffee attributes (description, category)
+2. Implement order state management
+3. Add order total calculation
+4. Create Customer entity and relationship
+5. Implement additional custom converters
+6. Add query methods to repositories
+7. Implement soft delete functionality
+
+## References
+
+- [Spring Data JPA Documentation](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
+- [Joda Money Documentation](https://www.joda.org/joda-money/)
+- [Hibernate Documentation](https://hibernate.org/orm/documentation/)
+- [JPA 2.1 Specification](https://jcp.org/en/jsr/detail?id=338)
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## About Us
 
 我們主要專注在敏捷專案管理、物聯網（IoT）應用開發和領域驅動設計（DDD）。喜歡把先進技術和實務經驗結合，打造好用又靈活的軟體解決方案。近來也積極結合 AI 技術，推動自動化工作流，讓開發與運維更有效率、更智慧。持續學習與分享，希望能一起推動軟體開發的創新和進步。
 
-## 聯繫我們
+## Contact
 
-若有任何問題、合作或想了解更多，歡迎透過以下管道與我們聯繫：
+**風清雲談** - 專注於敏捷專案管理、物聯網（IoT）應用開發和領域驅動設計（DDD）。
 
-- FB 粉絲頁：[風清雲談 | Facebook](https://www.facebook.com/profile.php?id=61576838896062)
-- LinkedIn：[linkedin.com/in/chu-kuo-lung](https://www.linkedin.com/in/chu-kuo-lung)
-- YouTube 頻道：[雲談風清 - YouTube](https://www.youtube.com/channel/UCXDqLTdCMiCJ1j8xGRfwEig)
-- 風清雲談 部落格：[風清雲談](https://blog.fengqing.tw/)
-- 電子郵件：[fengqing.tw@gmail.com](mailto:fengqing.tw@gmail.com)
+- 🌐 官方網站：[風清雲談部落格](https://blog.fengqing.tw/)
+- 📘 Facebook：[風清雲談粉絲頁](https://www.facebook.com/profile.php?id=61576838896062)
+- 💼 LinkedIn：[Chu Kuo-Lung](https://www.linkedin.com/in/chu-kuo-lung)
+- 📺 YouTube：[雲談風清頻道](https://www.youtube.com/channel/UCXDqLTdCMiCJ1j8xGRfwEig)
+- 📧 Email：[fengqing.tw@gmail.com](mailto:fengqing.tw@gmail.com)
+
+---
+
+**⭐ 如果這個專案對您有幫助，歡迎給個 Star！**

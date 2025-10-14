@@ -17,10 +17,6 @@ import jakarta.persistence.Convert;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**
- * 咖啡實體類別
- * 使用 JPA 註解映射到資料庫表 t_menu
- */
 @Entity
 @Table(name = "T_MENU")
 @Builder
@@ -28,20 +24,18 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Coffee implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     @Id
     @GeneratedValue
     private Long id;
-    
     private String name;
-    
     @Column
     @Convert(converter = MoneyConverter.class)
     private Money price;
-    
     @Column(updatable = false)
     @CreationTimestamp
     private LocalDateTime createTime;
-    
     @UpdateTimestamp
     private LocalDateTime updateTime;
 }
