@@ -116,8 +116,10 @@ Access the H2 database console at: `http://localhost:8080/h2-console`
 - `UPDATE_TIME` - Last update timestamp
 
 **T_ORDER_COFFEE** (Join table for many-to-many)
-- `ORDER_ID` - Foreign key to T_ORDER
+- `COFFEE_ORDER_ID` - Foreign key to T_ORDER (JPA default naming)
 - `ITEMS_ID` - Foreign key to T_MENU
+
+**Note**: JPA generates column names using pattern `{entityName}_id` when not explicitly specified
 
 ## Usage
 
@@ -158,9 +160,10 @@ SELECT * FROM T_MENU;
 SELECT * FROM T_ORDER;
 
 -- View order details with coffee items
+-- Note: JPA uses default naming: coffee_order_id (not order_id)
 SELECT o.id, o.customer, c.name, c.price 
 FROM T_ORDER o 
-JOIN T_ORDER_COFFEE oc ON o.id = oc.order_id 
+JOIN T_ORDER_COFFEE oc ON o.id = oc.coffee_order_id 
 JOIN T_MENU c ON oc.items_id = c.id;
 ```
 
@@ -325,16 +328,16 @@ Money retrieved = Money.ofMinor(CurrencyUnit.of("TWD"), 10000);  // TWD 100.00
 ## Entity Relationship Diagram
 
 ```
-┌─────────────┐         ┌──────────────────┐         ┌──────────────┐
-│   Coffee    │         │ T_ORDER_COFFEE   │         │ CoffeeOrder  │
-│  (T_MENU)   │────────<│  (Join Table)    │>────────│  (T_ORDER)   │
-└─────────────┘         └──────────────────┘         └──────────────┘
-│ ID          │         │ ORDER_ID (FK)    │         │ ID           │
-│ NAME        │         │ ITEMS_ID (FK)    │         │ CUSTOMER     │
-│ PRICE       │         └──────────────────┘         │ STATE        │
-│ CREATE_TIME │                                      │ CREATE_TIME  │
-│ UPDATE_TIME │                                      │ UPDATE_TIME  │
-└─────────────┘                                      └──────────────┘
+┌─────────────┐         ┌─────────────────────────┐         ┌──────────────┐
+│   Coffee    │         │   T_ORDER_COFFEE        │         │ CoffeeOrder  │
+│  (T_MENU)   │────────<│    (Join Table)         │>────────│  (T_ORDER)   │
+└─────────────┘         └─────────────────────────┘         └──────────────┘
+│ ID          │         │ COFFEE_ORDER_ID (FK)    │         │ ID           │
+│ NAME        │         │ ITEMS_ID (FK)           │         │ CUSTOMER     │
+│ PRICE       │         └─────────────────────────┘         │ STATE        │
+│ CREATE_TIME │          (JPA default naming)               │ CREATE_TIME  │
+│ UPDATE_TIME │                                             │ UPDATE_TIME  │
+└─────────────┘                                             └──────────────┘
 ```
 
 ## Best Practices Demonstrated
